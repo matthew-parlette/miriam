@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: houseparty
+  labels:
+    app: houseparty
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: houseparty
+  template:
+    metadata:
+      labels:
+        app: houseparty
+    spec:
+      containers:
+      - name: tanya
+        image: mattparlette/tanya:latest
+        volumeMounts:
+        - name: tanya-config
+          mountPath: /app/config
+          readOnly: true
+        - name: tanya-secrets
+          mountPath: /app/secrets
+          readOnly: true
+      volumes:
+      - name: tanya-config
+        configMap:
+          name: tanya-config
+      - name: tanya-secrets
+        secret:
+          secretName: tanya-secrets

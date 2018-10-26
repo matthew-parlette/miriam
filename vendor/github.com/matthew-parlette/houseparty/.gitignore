@@ -1,0 +1,5 @@
+**/config/*
+!**/config/.keep
+**/secrets/*
+!**/secrets/.keep
+*.pyc
