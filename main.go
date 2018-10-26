@@ -42,19 +42,19 @@ func AddChecklist(card *trello.Card, name string) error {
 
 // Return the checked and unchecked items for a checklist
 // Create the checklist if necessary
-func getChecklistStats(card *trello.Card, name string) (int, int) {
-	checked := 0
-	unchecked := 0
+func getChecklistItems(card *trello.Card, name string) ([]trello.CheckItem, []trello.CheckItem) {
+	var checked []trello.CheckItem
+	var unchecked []trello.CheckItem
 
 	// Does it already exist?
 	for _, existingChecklist := range card.Checklists {
 		if existingChecklist.Name == name {
 			for _, item := range existingChecklist.CheckItems {
 				if item.State == "complete" {
-					checked = checked + 1
+					checked = append(checked, item)
 				}
 				if item.State == "incomplete" {
-					unchecked = unchecked + 1
+					unchecked = append(unchecked, item)
 				}
 			}
 			return checked, unchecked
@@ -117,9 +117,9 @@ func run() {
 			log.Fatal(err)
 			continue
 		}
-		successChecked, successUnchecked := getChecklistStats(card, "Success Criteria")
-		tasksChecked, tasksUnchecked := getChecklistStats(card, "Tasks")
-		backlogChecked, backlogUnchecked := getChecklistStats(card, "Backlog")
+		successChecked, successUnchecked := getChecklistItems(card, "Success Criteria")
+		tasksChecked, tasksUnchecked := getChecklistItems(card, "Tasks")
+		backlogChecked, backlogUnchecked := getChecklistItems(card, "Backlog")
 
 		// If checklists are empty, add labels
 		// First, we need to load the Board into the Card object
@@ -128,12 +128,12 @@ func run() {
 			log.Fatal(err)
 			continue
 		}
-		if successChecked+successUnchecked == 0 {
+		if len(successChecked)+len(successUnchecked) == 0 {
 			addLabel(card, "Needs success criteria")
 		} else {
 			removeLabel(card, "Needs success criteria")
 		}
-		if tasksChecked+tasksUnchecked+backlogChecked+backlogUnchecked == 0 {
+		if len(tasksChecked)+len(tasksUnchecked)+len(backlogChecked)+len(backlogUnchecked) == 0 {
 			addLabel(card, "Needs tasks")
 		} else {
 			removeLabel(card, "Needs tasks")
