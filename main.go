@@ -67,18 +67,11 @@ func getChecklistStats(card *trello.Card, name string) (int, int) {
 }
 
 func hasLabel(card *trello.Card, name string) bool {
-	// labels, err := card.Board.GetLabels(trello.Arguments{})
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return false
-	// }
 	for _, label := range card.Labels {
 		if label.Name == name {
-			fmt.Printf("Found %v\n", name)
 			return true
 		}
 	}
-	fmt.Printf("Didn't fint %v\n", name)
 	return false
 }
 
