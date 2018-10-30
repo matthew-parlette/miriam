@@ -77,7 +77,6 @@ func hasLabel(card *trello.Card, name string) bool {
 }
 
 func addLabel(card *trello.Card, name string) {
-	fmt.Println(card.Board)
 	labels, err := card.Board.GetLabels(trello.Arguments{})
 	if err != nil {
 		log.Fatal(err)
