@@ -72,6 +72,7 @@ func hasLabel(card *trello.Card, name string) bool {
 			return true
 		}
 	}
+	fmt.Println("Couldn't find", name, "label on card", card.ID)
 	return false
 }
 
@@ -144,6 +145,7 @@ func run() {
 			// Remove Planned label before moving
 			removeLabel(card, "Planned")
 			// Then move the card
+			fmt.Println("Moving card", card.ID, "to board", goalsBoard.ID)
 			if err := card.Update(trello.Arguments{"idBoard": goalsBoard.ID}); err != nil {
 				err = errors.Wrapf(err, "Error moving card %s to board %s", card.ID, goalsBoard.ID)
 				log.Println(err)
