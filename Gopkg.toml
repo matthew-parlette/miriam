@@ -24,11 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-
-[[constraint]]
-  name = "github.com/davecgh/go-spew"
-  version = "1.1.1"
-
 [[constraint]]
   branch = "master"
   name = "github.com/matthew-parlette/houseparty"

@@ -35,12 +35,6 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
-  name = "github.com/davecgh/go-spew"
-  packages = ["spew"]
-  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
-  version = "v1.1.1"
-
-[[projects]]
   name = "github.com/fatih/structs"
   packages = ["."]
   revision = "4966fc68f5b7593aafa6cbbba2d65ec6e1416047"
@@ -95,7 +89,7 @@
     "prometheus",
     "prometheus/internal"
   ]
-  revision = "16f375c74db6ccf880e1cd9c6c6087a6d58e5d12"
+  revision = "f30f428035633da15d00d3dfefb0128c5e569ef4"
 
 [[projects]]
   branch = "master"
@@ -154,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4c93a246e6ddcffb6918bd911cfd6c0c69b1bbbecd25a6b12f9f020adf1ca64f"
+  inputs-digest = "5a8d34588bf4cf33eeba6273cdcbae462289c4b9e08a16d720e8a1146fe1ed03"
   solver-name = "gps-cdcl"
   solver-version = 1

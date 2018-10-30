@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/adlio/trello"
 	"github.com/matthew-parlette/houseparty"
 	"github.com/pkg/errors"
+	"github.com/sachaos/todoist/lib"
 )
+
+// Trello
 
 func getCards(board *trello.Board) []*trello.Card {
 	var cards []*trello.Card
@@ -97,7 +102,52 @@ func removeLabel(card *trello.Card, name string) {
 	}
 }
 
+// Todoist
+
+func syncTodoist() bool {
+	if err := houseparty.TodoistClient.Sync(context.Background()); err != nil {
+		log.Fatal(err)
+		return false
+	}
+	return true
+}
+
+func getTodoistWorkingProjectID() int {
+	project := 0
+	search := houseparty.Config("todoist-project")
+	for _, p := range houseparty.TodoistClient.Store.Projects {
+		if p.Name == search {
+			project = p.GetID()
+		}
+	}
+
+	if project == 0 {
+		log.Fatal("Could not find project with name ", houseparty.Config("todoist-project"))
+	}
+
+	return project
+}
+
+// Find an existing todoist task with the given content
+// To match the entire content, strict == true
+func findExistingTodoistTask(content string, strict bool) []todoist.Item {
+	var existing []todoist.Item
+	for _, item := range houseparty.TodoistClient.Store.Items {
+		if strict {
+			if item.Content == content {
+				existing = append(existing, item)
+			}
+		} else {
+			if strings.Contains(item.Content, content) {
+				existing = append(existing, item)
+			}
+		}
+	}
+	return existing
+}
+
 func run() {
+	syncTodoist()
 	backlogBoard, err := houseparty.TrelloClient.GetBoard(houseparty.Config("trello-backlog"), trello.Defaults())
 	if err != nil {
 		log.Fatal(err)
@@ -148,6 +198,67 @@ func run() {
 				err = errors.Wrapf(err, "Error moving card %s to board %s", card.ID, goalsBoard.ID)
 				log.Println(err)
 				continue
+			}
+		}
+	}
+	for _, card := range getCards(goalsBoard) {
+		// Need to get full card details to get checklists
+		card, err = houseparty.TrelloClient.GetCard(card.ID, trello.Arguments{
+			"checklists": "all",
+			"list":       "true",
+		})
+		if err != nil {
+			log.Fatal(err)
+			continue
+		}
+		todoistProjectID := getTodoistWorkingProjectID()
+		if card.List.Name == "In Progress" {
+			// successChecked, successUnchecked := getChecklistItems(card, "Success Criteria")
+			tasksChecked, tasksUnchecked := getChecklistItems(card, "Tasks")
+			// backlogChecked, backlogUnchecked := getChecklistItems(card, "Backlog")
+			// TODO: Move completed backlog checklist items to tasks
+			// Sync task checklist items with todoist. On conflict, todoist wins
+			for _, item := range tasksChecked {
+				tasks := findExistingTodoistTask(item.Name, false)
+				if len(tasks) > 0 {
+					// Found at least one todoist task
+					for _, task := range tasks {
+						fmt.Printf("Found a todoist task (%v) that matches complete checklist item (%v)\n", task.Content, item.Name)
+						if task.Checked == 0 {
+							// Checklist item is complete, Todoist task is not
+							fmt.Println("Todoist task is incomplete, but checklist item is complete, marking Todoist task as complete...")
+						}
+					}
+				}
+			}
+			for _, item := range tasksUnchecked {
+				tasks := findExistingTodoistTask(item.Name, false)
+				if len(tasks) > 0 {
+					// Found at least one matching todoist task
+					for _, task := range tasks {
+						fmt.Printf("Found a todoist task (%v) that matches incomplete checklist item (%v)\n", task.Content, item.Name)
+						if task.Checked == 0 {
+							// Checklist item is incomplete, Todoist task is as well
+							fmt.Println("Todoist task and Trello checklist item are both incomplete, moving on...")
+						} else {
+							// Checklist item is incomplete, Todoist task is complete
+							fmt.Println("Todoist task is complete, Trello checklist item is incomplete, marking Trello checklist item as complete...")
+						}
+					}
+				} else {
+					fmt.Printf("Todoist task is missing, creating one from Trello checklist item (%v)...\n", item.Name)
+					t := todoist.Item{
+						Priority:   4,
+						DateString: "tod",
+					}
+					t.Content = fmt.Sprintf("[%v](%v)", item.Name, card.Url)
+					t.ProjectID = todoistProjectID
+					if err := houseparty.TodoistClient.AddItem(context.Background(), t); err != nil {
+						err = errors.Wrapf(err, "Error creating todoist task: %s", t.Content)
+						log.Println(err)
+						continue
+					}
+				}
 			}
 		}
 	}
