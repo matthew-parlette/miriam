@@ -77,7 +77,6 @@ func hasLabel(card *trello.Card, name string) bool {
 			return true
 		}
 	}
-	fmt.Println("Couldn't find", name, "label on card", card.ID)
 	return false
 }
 
