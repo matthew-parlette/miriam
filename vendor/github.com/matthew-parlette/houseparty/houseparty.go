@@ -1,6 +1,7 @@
 package houseparty
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,16 +17,22 @@ import (
 	"github.com/adlio/trello"
 	jira "github.com/andygrunwald/go-jira"
 	"github.com/heptiolabs/healthcheck"
+	"github.com/pkg/errors"
+	wunderlist "github.com/robdimsdale/wl"
+	"github.com/robdimsdale/wl/logger"
+	"github.com/robdimsdale/wl/oauth"
 	"github.com/sachaos/todoist/lib"
 )
 
 var (
-	ConfigPath    string
-	SecretsPath   string
-	JiraClient    *jira.Client
-	TodoistClient *todoist.Client
-	ChatClient    *chat.Client
-	TrelloClient  *trello.Client
+	ConfigPath       string
+	SecretsPath      string
+	JiraClient       *jira.Client
+	TodoistClient    *todoist.Client
+	TodoistCompleted todoist.Completed
+	ChatClient       *chat.Client
+	TrelloClient     *trello.Client
+	WunderlistClient wunderlist.Client
 )
 
 func GetEnv(key, defaultValue string) string {
@@ -56,6 +63,7 @@ func Secret(item string) string {
 	return result
 }
 
+// Jira
 func InitJiraClient() error {
 	tp := jira.BasicAuthTransport{
 		Username: Config("jira-username"),
@@ -69,6 +77,7 @@ func InitJiraClient() error {
 	return nil
 }
 
+// Todoist
 func InitTodoistClient() error {
 	config := &todoist.Config{
 		AccessToken: Secret("todoist-token"),
@@ -82,6 +91,23 @@ func InitTodoistClient() error {
 	return nil
 }
 
+func SyncTodoist() bool {
+	// Do a normal sync
+	if err := TodoistClient.Sync(context.Background()); err != nil {
+		log.Fatal(err)
+		return false
+	}
+	// Also load the completed items, only available for premium?! Get Out
+	if false {
+		if err := TodoistClient.CompletedAll(context.Background(), &TodoistCompleted); err != nil {
+			log.Fatal(err)
+			return false
+		}
+	}
+	return true
+}
+
+// Rocketchat
 func InitRocketChatClient() error {
 	rocketchatUrlString := Config("rocketchat-url")
 	rocketchatUrl, err := url.Parse(rocketchatUrlString)
@@ -176,10 +202,22 @@ func StartChatListener() error {
 	return nil
 }
 
+// Trello
 func InitTrelloClient() error {
 	client := trello.NewClient(Secret("trello-key"), Secret("trello-token"))
-	fmt.Println(client)
 	TrelloClient = client
+	return nil
+}
+
+// Wunderlist
+func InitWunderlistClient() error {
+	client := oauth.NewClient(
+		Secret("wunderlist-access-token"),
+		Secret("wunderlist-client-id"),
+		wunderlist.APIURL,
+		logger.NewLogger(logger.INFO),
+	)
+	WunderlistClient = client
 	return nil
 }
 
@@ -208,18 +246,22 @@ func init() {
 	SecretsPath = GetEnv("SECRETS_PATH", "secrets")
 	fmt.Println("Initializing JIRA...")
 	if err := InitJiraClient(); err != nil {
-		log.Fatal(err)
+		err = errors.Wrapf(err, "Error initializing jira client")
 	}
 	fmt.Println("Initializing todoist...")
 	if err := InitTodoistClient(); err != nil {
-		log.Fatal(err)
+		err = errors.Wrapf(err, "Error initializing todoist client")
 	}
 	fmt.Println("Initializing rocketchat...")
 	if err := InitRocketChatClient(); err != nil {
-		log.Fatal(err)
+		err = errors.Wrapf(err, "Error initializing rocketchat client")
 	}
 	fmt.Println("Initializing trello...")
 	if err := InitTrelloClient(); err != nil {
-		log.Fatal(err)
+		err = errors.Wrapf(err, "Error initializing trello client")
+	}
+	fmt.Println("Initializing wunderlist...")
+	if err := InitWunderlistClient(); err != nil {
+		err = errors.Wrapf(err, "Error initializing wunderlist client")
 	}
 }

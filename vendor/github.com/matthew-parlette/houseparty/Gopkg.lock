@@ -113,6 +113,16 @@
   revision = "185b4288413d2a0dd0806f78c90dde719829e5ae"
 
 [[projects]]
+  name = "github.com/robdimsdale/wl"
+  packages = [
+    ".",
+    "logger",
+    "oauth"
+  ]
+  revision = "8d3c6d946b94e9dc0a58b5fc6f5a2a55590e99f4"
+  version = "v1.2.4"
+
+[[projects]]
   name = "github.com/sachaos/todoist"
   packages = ["lib"]
   revision = "37e25f82129e71d6c6638a366b2bb27d7f5f23ec"
@@ -142,6 +152,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e8fd40dcd69ccd743acd56c42a7961fd427e59813384d8e5250e553a785ef3a1"
+  inputs-digest = "418570294299be7ee8847781e07ca46a0c539127effcf27f7f7f712db981fb54"
   solver-name = "gps-cdcl"
   solver-version = 1

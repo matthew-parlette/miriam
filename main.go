@@ -11,7 +11,7 @@ import (
 	"github.com/adlio/trello"
 	"github.com/matthew-parlette/houseparty"
 	"github.com/pkg/errors"
-	"github.com/sachaos/todoist/lib"
+	wunderlist "github.com/robdimsdale/wl"
 )
 
 // Trello
@@ -129,15 +129,15 @@ func getTodoistWorkingProjectID() int {
 
 // Find an existing todoist task with the given content
 // To match the entire content, strict == true
-func findExistingTodoistTask(content string, strict bool) []todoist.Item {
-	var existing []todoist.Item
-	for _, item := range houseparty.TodoistClient.Store.Items {
+func findExistingTasks(tasks []wunderlist.Task, content string, strict bool) []wunderlist.Task {
+	var existing []wunderlist.Task
+	for _, item := range tasks {
 		if strict {
-			if item.Content == content {
+			if item.Title == content {
 				existing = append(existing, item)
 			}
 		} else {
-			if strings.Contains(item.Content, content) {
+			if strings.Contains(item.Title, content) {
 				existing = append(existing, item)
 			}
 		}
@@ -146,7 +146,11 @@ func findExistingTodoistTask(content string, strict bool) []todoist.Item {
 }
 
 func run() {
-	syncTodoist()
+	inbox, _ := houseparty.WunderlistClient.Inbox()
+	wunderlistUser, _ := houseparty.WunderlistClient.User()
+	inboxTasks, _ := houseparty.WunderlistClient.TasksForListID(inbox.ID)
+	inboxCompleted, _ := houseparty.WunderlistClient.CompletedTasksForListID(inbox.ID, true)
+	inboxTasks = append(inboxTasks, inboxCompleted...)
 	backlogBoard, err := houseparty.TrelloClient.GetBoard(houseparty.Config("trello-backlog"), trello.Defaults())
 	if err != nil {
 		log.Fatal(err)
@@ -211,53 +215,42 @@ func run() {
 			log.Fatal(err)
 			continue
 		}
-		todoistProjectID := getTodoistWorkingProjectID()
 		if card.List.Name == "In Progress" {
 			// successChecked, successUnchecked := getChecklistItems(card, "Success Criteria")
 			tasksChecked, tasksUnchecked := getChecklistItems(card, "Tasks")
 			// backlogChecked, backlogUnchecked := getChecklistItems(card, "Backlog")
 			// TODO: Move completed backlog checklist items to tasks
-			// Sync task checklist items with todoist. On conflict, todoist wins
+			// Sync task checklist items with wunderlist. On conflict, wunderlist wins
 			for _, item := range tasksChecked {
-				tasks := findExistingTodoistTask(item.Name, false)
+				tasks := findExistingTasks(inboxTasks, item.Name, false)
 				if len(tasks) > 0 {
-					// Found at least one todoist task
+					// Found at least one task
 					for _, task := range tasks {
-						fmt.Printf("Found a todoist task (%v) that matches complete checklist item (%v)\n", task.Content, item.Name)
-						if task.Checked == 0 {
-							// Checklist item is complete, Todoist task is not
-							fmt.Println("Todoist task is incomplete, but checklist item is complete, marking Todoist task as complete...")
+						fmt.Printf("Found a task (%v) that matches complete checklist item (%v)\n", task.Title, item.Name)
+						if task.Completed == false {
+							// Checklist item is complete, task is not
+							fmt.Println("Task is incomplete, but checklist item is complete, marking task as complete...")
 						}
 					}
 				}
 			}
 			for _, item := range tasksUnchecked {
-				tasks := findExistingTodoistTask(item.Name, false)
+				tasks := findExistingTasks(inboxTasks, item.Name, false)
 				if len(tasks) > 0 {
 					// Found at least one matching todoist task
 					for _, task := range tasks {
-						fmt.Printf("Found a todoist task (%v) that matches incomplete checklist item (%v)\n", task.Content, item.Name)
-						if task.Checked == 0 {
-							// Checklist item is incomplete, Todoist task is as well
-							fmt.Println("Todoist task and Trello checklist item are both incomplete, moving on...")
+						fmt.Printf("Found a task (%v) that matches incomplete checklist item (%v)\n", task.Title, item.Name)
+						if task.Completed == false {
+							// Checklist item is incomplete, task is as well
+							fmt.Println("Task and checklist item are both incomplete, moving on...")
 						} else {
-							// Checklist item is incomplete, Todoist task is complete
-							fmt.Println("Todoist task is complete, Trello checklist item is incomplete, marking Trello checklist item as complete...")
+							// Checklist item is incomplete, task is complete
+							fmt.Println("Task is complete, checklist item is incomplete, marking checklist item as complete...")
 						}
 					}
 				} else {
-					fmt.Printf("Todoist task is missing, creating one from Trello checklist item (%v)...\n", item.Name)
-					t := todoist.Item{
-						Priority:   4,
-						DateString: "tod",
-					}
-					t.Content = fmt.Sprintf("[%v](%v)", item.Name, card.Url)
-					t.ProjectID = todoistProjectID
-					if err := houseparty.TodoistClient.AddItem(context.Background(), t); err != nil {
-						err = errors.Wrapf(err, "Error creating todoist task: %s", t.Content)
-						log.Println(err)
-						continue
-					}
+					fmt.Printf("Task is missing, creating one from checklist item (%v)...\n", item.Name)
+					houseparty.WunderlistClient.CreateTask(fmt.Sprintf("%v (%v)", item.Name, card.Url), inbox.ID, wunderlistUser.ID, false, "", 0, time.Now().Local(), false)
 				}
 			}
 		}

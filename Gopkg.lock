@@ -68,7 +68,7 @@
   branch = "master"
   name = "github.com/matthew-parlette/houseparty"
   packages = ["."]
-  revision = "31eeca8ec1ba9f74c9c7863fbfeb0d2995664b9c"
+  revision = "9fe150806cfe90ad1011cd0e41ee24b93a5ba51a"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -119,6 +119,16 @@
   revision = "185b4288413d2a0dd0806f78c90dde719829e5ae"
 
 [[projects]]
+  name = "github.com/robdimsdale/wl"
+  packages = [
+    ".",
+    "logger",
+    "oauth"
+  ]
+  revision = "8d3c6d946b94e9dc0a58b5fc6f5a2a55590e99f4"
+  version = "v1.2.4"
+
+[[projects]]
   name = "github.com/sachaos/todoist"
   packages = ["lib"]
   revision = "37e25f82129e71d6c6638a366b2bb27d7f5f23ec"
@@ -143,7 +153,7 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["websocket"]
-  revision = "9b4f9f5ad5197c79fd623a3638e70d8b26cef344"
+  revision = "c44066c5c816ec500d459a2a324a753f78531ae0"
 
 [solve-meta]
   analyzer-name = "dep"
