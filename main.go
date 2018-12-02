@@ -250,7 +250,7 @@ func run() {
 					}
 				} else {
 					fmt.Printf("Task is missing, creating one from checklist item (%v)...\n", item.Name)
-					houseparty.WunderlistClient.CreateTask(fmt.Sprintf("%v (%v)", item.Name, card.Url), inbox.ID, wunderlistUser.ID, false, "", 0, time.Now().Local(), false)
+					houseparty.WunderlistClient.CreateTask(fmt.Sprintf("%v (%v)", item.Name, card.ShortUrl), inbox.ID, wunderlistUser.ID, false, "", 0, time.Now().Local(), false)
 				}
 			}
 		}
