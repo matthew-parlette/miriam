@@ -239,6 +239,8 @@ func run() {
 						if task.Completed == false {
 							// Checklist item is complete, task is not
 							fmt.Println("Task is incomplete, but checklist item is complete, marking task as complete...")
+							task.Completed = true
+							houseparty.WunderlistClient.UpdateTask(task)
 						}
 					}
 				}
