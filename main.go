@@ -45,6 +45,15 @@ func AddChecklist(card *trello.Card, name string) error {
 	return err
 }
 
+func MarkChecklistItem(card *trello.Card, item trello.CheckItem, state string) error {
+	path := fmt.Sprintf("cards/%s/checkItem/%s", card.ID, item.ID)
+	err := houseparty.TrelloClient.Put(path, trello.Arguments{"state": state}, &card.IDCheckLists)
+	if err != nil {
+		err = errors.Wrapf(err, "Error marking checklist item '%s' as %s", item.Name, state)
+	}
+	return err
+}
+
 // Return the checked and unchecked items for a checklist
 // Create the checklist if necessary
 func getChecklistItems(card *trello.Card, name string) ([]trello.CheckItem, []trello.CheckItem) {
@@ -246,6 +255,7 @@ func run() {
 						} else {
 							// Checklist item is incomplete, task is complete
 							fmt.Println("Task is complete, checklist item is incomplete, marking checklist item as complete...")
+							_ = MarkChecklistItem(card, item, "complete")
 						}
 					}
 				} else {
