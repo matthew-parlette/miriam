@@ -155,6 +155,7 @@ func findExistingTasks(tasks []wunderlist.Task, content string, strict bool) []w
 }
 
 func run() {
+	fmt.Println("Starting run at", time.Now().Format("2006-01-02T15:04:05-0700"))
 	inbox, _ := houseparty.WunderlistClient.Inbox()
 	wunderlistUser, _ := houseparty.WunderlistClient.User()
 	inboxTasks, _ := houseparty.WunderlistClient.TasksForListID(inbox.ID)
