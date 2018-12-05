@@ -232,37 +232,43 @@ func run() {
 			// TODO: Move completed backlog checklist items to tasks
 			// Sync task checklist items with wunderlist. On conflict, wunderlist wins
 			for _, item := range tasksChecked {
+				fmt.Printf("Processing checked checklist item (%v)...\n", item.Name)
 				tasks := findExistingTasks(inboxTasks, item.Name, false)
 				if len(tasks) > 0 {
 					// Found at least one task
 					for _, task := range tasks {
-						fmt.Printf("Found a task (%v) that matches complete checklist item (%v)\n", task.Title, item.Name)
+						fmt.Printf("    Found a matching task (%v)\n", task.Title)
 						if task.Completed == false {
 							// Checklist item is complete, task is not
-							fmt.Println("Task is incomplete, but checklist item is complete, marking task as complete...")
+							fmt.Println("    Task is incomplete, but checklist item is complete, marking task as complete...")
 							task.Completed = true
 							houseparty.WunderlistClient.UpdateTask(task)
+						} else {
+							fmt.Println("    Task and checklist item are both complete, moving on...")
 						}
 					}
+				} else {
+					fmt.Println("    Task is missing, moving on...")
 				}
 			}
 			for _, item := range tasksUnchecked {
+				fmt.Printf("Processing unchecked checklist item (%v)...\n", item.Name)
 				tasks := findExistingTasks(inboxTasks, item.Name, false)
 				if len(tasks) > 0 {
 					// Found at least one matching todoist task
 					for _, task := range tasks {
-						fmt.Printf("Found a task (%v) that matches incomplete checklist item (%v)\n", task.Title, item.Name)
+						fmt.Printf("    Found a matching task (%v)\n", task.Title)
 						if task.Completed == false {
 							// Checklist item is incomplete, task is as well
-							fmt.Println("Task and checklist item are both incomplete, moving on...")
+							fmt.Println("    Task and checklist item are both incomplete, moving on...")
 						} else {
 							// Checklist item is incomplete, task is complete
-							fmt.Println("Task is complete, checklist item is incomplete, marking checklist item as complete...")
+							fmt.Println("    Task is complete, checklist item is incomplete, marking checklist item as complete...")
 							_ = MarkChecklistItem(card, item, "complete")
 						}
 					}
 				} else {
-					fmt.Printf("Task is missing, creating one from checklist item (%v)...\n", item.Name)
+					fmt.Printf("    Task is missing, creating one from checklist item (%v)...\n", item.Name)
 					houseparty.WunderlistClient.CreateTask(fmt.Sprintf("%v (%v)", item.Name, card.ShortUrl), inbox.ID, wunderlistUser.ID, false, "", 0, time.Now().Local(), false)
 				}
 			}
@@ -289,6 +295,8 @@ func main() {
 	if houseparty.ChatClient != nil {
 		houseparty.StartChatListener()
 	}
+
+	fmt.Println("Initialization complete")
 
 	// First run before waiting for ticker
 	run()
