@@ -161,6 +161,7 @@ func run() {
 	inboxTasks, _ := houseparty.WunderlistClient.TasksForListID(inbox.ID)
 	inboxCompleted, _ := houseparty.WunderlistClient.CompletedTasksForListID(inbox.ID, true)
 	inboxTasks = append(inboxTasks, inboxCompleted...)
+	fmt.Printf("Found %v tasks (%v completed)\n", len(inboxTasks), len(inboxCompleted))
 	backlogBoard, err := houseparty.TrelloClient.GetBoard(houseparty.Config("trello-backlog"), trello.Defaults())
 	if err != nil {
 		log.Fatal(err)
