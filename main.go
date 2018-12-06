@@ -158,7 +158,12 @@ func run() {
 	fmt.Println("Starting run at", time.Now().Format("2006-01-02T15:04:05-0700"))
 	inbox, _ := houseparty.WunderlistClient.Inbox()
 	wunderlistUser, _ := houseparty.WunderlistClient.User()
-	inboxTasks, _ := houseparty.WunderlistClient.TasksForListID(inbox.ID)
+	inboxTasks, err := houseparty.WunderlistClient.TasksForListID(inbox.ID)
+	if err != nil {
+		log.Printf("Error loading open tasks: %v", err)
+		log.Printf("Skipping this run, will try again in %v seconds...", houseparty.Config("interval"))
+		return
+	}
 	inboxCompleted, _ := houseparty.WunderlistClient.CompletedTasksForListID(inbox.ID, true)
 	inboxTasks = append(inboxTasks, inboxCompleted...)
 	fmt.Printf("Found %v tasks (%v completed)\n", len(inboxTasks), len(inboxCompleted))
