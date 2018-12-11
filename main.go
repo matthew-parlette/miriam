@@ -49,9 +49,18 @@ func MarkChecklistItem(card *trello.Card, item trello.CheckItem, state string) e
 	path := fmt.Sprintf("cards/%s/checkItem/%s", card.ID, item.ID)
 	err := houseparty.TrelloClient.Put(path, trello.Arguments{"state": state}, &card.IDCheckLists)
 	if err != nil {
-		err = errors.Wrapf(err, "Error marking checklist item '%s' as %s", item.Name, state)
+		err = fmt.Errorf("Error marking checklist item '%s' as %s: %s", item.Name, state, err)
 	}
 	return err
+}
+
+func getChecklist(card *trello.Card, name string) *trello.Checklist {
+	for _, existingChecklist := range card.Checklists {
+		if existingChecklist.Name == name {
+			return existingChecklist
+		}
+	}
+	return nil
 }
 
 // Return the checked and unchecked items for a checklist
@@ -61,23 +70,35 @@ func getChecklistItems(card *trello.Card, name string) ([]trello.CheckItem, []tr
 	var unchecked []trello.CheckItem
 
 	// Does it already exist?
-	for _, existingChecklist := range card.Checklists {
-		if existingChecklist.Name == name {
-			for _, item := range existingChecklist.CheckItems {
-				if item.State == "complete" {
-					checked = append(checked, item)
-				}
-				if item.State == "incomplete" {
-					unchecked = append(unchecked, item)
-				}
+	existingChecklist := getChecklist(card, name)
+	if existingChecklist != nil {
+		for _, item := range existingChecklist.CheckItems {
+			if item.State == "complete" {
+				checked = append(checked, item)
 			}
-			return checked, unchecked
+			if item.State == "incomplete" {
+				unchecked = append(unchecked, item)
+			}
 		}
+		return checked, unchecked
 	}
 
 	// It doesn't exist, create it
 	AddChecklist(card, name)
 	return checked, unchecked
+}
+
+func moveItemToChecklist(item trello.CheckItem, card *trello.Card, name string) error {
+	newChecklist := getChecklist(card, name)
+	if newChecklist == nil {
+		return fmt.Errorf("Could not find checklist '%v'", name)
+	}
+	path := fmt.Sprintf("cards/%s/checkItem/%s", card.ID, item.ID)
+	err := houseparty.TrelloClient.Put(path, trello.Arguments{"idChecklist": newChecklist.ID}, &card.IDCheckLists)
+	if err != nil {
+		err = errors.Wrapf(err, "Error moving checklist item '%s' to %s", item.Name, name)
+	}
+	return err
 }
 
 func hasLabel(card *trello.Card, name string) bool {
@@ -234,8 +255,17 @@ func run() {
 		if card.List.Name == "In Progress" {
 			// successChecked, successUnchecked := getChecklistItems(card, "Success Criteria")
 			tasksChecked, tasksUnchecked := getChecklistItems(card, "Tasks")
-			// backlogChecked, backlogUnchecked := getChecklistItems(card, "Backlog")
+			backlogChecked, backlogUnchecked := getChecklistItems(card, "Backlog")
 			// TODO: Move completed backlog checklist items to tasks
+			if len(backlogChecked) > 0 {}
+			// TODO: Move incomplete backlog item to tasks
+			if len(tasksUnchecked) == 0 && len(backlogUnchecked) > 0 {
+				nextItem := backlogUnchecked[0]
+				fmt.Printf("All items in %v for card '%v' are completed, moving %v item (%v) to %v...\n", "Tasks", card.Name, "Backlog", nextItem.Name, "Tasks")
+				moveItemToChecklist(nextItem, card, "Tasks")
+				// Reload the tasks since we just moved an item to Tasks
+				tasksChecked, tasksUnchecked = getChecklistItems(card, "Tasks")
+			}
 			// Sync task checklist items with wunderlist. On conflict, wunderlist wins
 			for _, item := range tasksChecked {
 				fmt.Printf("Processing checked checklist item (%v)...\n", item.Name)
