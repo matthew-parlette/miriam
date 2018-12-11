@@ -256,6 +256,18 @@ func run() {
 			// successChecked, successUnchecked := getChecklistItems(card, "Success Criteria")
 			tasksChecked, tasksUnchecked := getChecklistItems(card, "Tasks")
 			backlogChecked, backlogUnchecked := getChecklistItems(card, "Backlog")
+			// TODO: Remove tasks for uncheck backlog items
+			if len(backlogUnchecked) > 0 {
+				for _, item := range backlogUnchecked {
+					tasks := findExistingTasks(inboxTasks, item.Name, false)
+					if len(tasks) > 0 {
+						for _, task := range tasks {
+							fmt.Printf("    Found task for unchecked backlog item, deleting task...\n")
+							houseparty.WunderlistClient.DeleteTask(task)
+						}
+					}
+				}
+			}
 			// TODO: Move completed backlog checklist items to tasks
 			if len(backlogChecked) > 0 {}
 			// TODO: Move incomplete backlog item to tasks
