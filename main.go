@@ -36,6 +36,16 @@ func getCards(board *trello.Board) []*trello.Card {
 	return cards
 }
 
+func getListByName(board *trello.Board, name string) *trello.List {
+	lists, _ := board.GetLists(trello.Arguments{})
+	for _, list := range lists {
+		if list.Name == name {
+			return list
+		}
+	}
+	return nil
+}
+
 func AddChecklist(card *trello.Card, name string) error {
 	path := fmt.Sprintf("cards/%s/checklists", card.ID)
 	err := houseparty.TrelloClient.Post(path, trello.Arguments{"name": name}, &card.IDCheckLists)
@@ -198,6 +208,20 @@ func run() {
 		log.Fatal(err)
 		return
 	}
+	// If there are no cards in In Progress, but there are cards in To Do, move one to In Progress
+	inProgressList := getListByName(goalsBoard, "In Progress")
+	if inProgressList != nil {
+		cards, _ := inProgressList.GetCards(trello.Arguments{})
+		if len(cards) == 0 {
+			toDoList := getListByName(goalsBoard, "To Do")
+			toDoCards, _ := toDoList.GetCards(trello.Arguments{})
+			if len(toDoCards) > 0 {
+				fmt.Printf("In Progress list is empty, moving To Do card %v to In Progress...", toDoCards[0].Name)
+				toDoCards[0].MoveToList(inProgressList.ID, trello.Arguments{})
+			}
+		}
+	}
+
 	for _, card := range getCards(backlogBoard) {
 		// Need to get full card details to get checklists
 		card, err = houseparty.TrelloClient.GetCard(card.ID, trello.Arguments{
@@ -269,7 +293,8 @@ func run() {
 				}
 			}
 			// TODO: Move completed backlog checklist items to tasks
-			if len(backlogChecked) > 0 {}
+			if len(backlogChecked) > 0 {
+			}
 			// TODO: Move incomplete backlog item to tasks
 			if len(tasksUnchecked) == 0 && len(backlogUnchecked) > 0 {
 				nextItem := backlogUnchecked[0]
