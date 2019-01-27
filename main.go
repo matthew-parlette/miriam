@@ -218,6 +218,9 @@ func run() {
 			if len(toDoCards) > 0 {
 				fmt.Printf("In Progress list is empty, moving To Do card %v to In Progress...", toDoCards[0].Name)
 				toDoCards[0].MoveToList(inProgressList.ID, trello.Arguments{})
+			} else {
+				fmt.Printf("No cards in 'In Progress' or 'To Do', creating a task to plan one...")
+				houseparty.WunderlistClient.CreateTask(fmt.Sprintf("Start working on a new goal (%v)", goalsBoard.ShortUrl), inbox.ID, wunderlistUser.ID, false, "", 0, time.Now().Local(), false)
 			}
 		}
 	}
