@@ -125,6 +125,24 @@ if err != nil {
 }
 ```
 
+## Creating and deleting a Board
+
+A board can be created or deleted on the `Board` struct for the user whose credentials are being used.
+
+```Go
+  board := trello.NewBoard("My bucket list")
+
+  // POST
+  err := client.CreateBoard(&board, trello.Defaults())
+
+  // DELETE
+  err := board.Delete(trello.Defaults())
+  if err != nil {
+    fmt.Println(err)
+  }
+}
+```
+
 ## Creating a Card
 
 The API provides several mechanisms for creating new cards.
@@ -149,7 +167,7 @@ err := client.CreateCard(card, trello.Defaults())
 
 ```Go
 list, err := client.GetList("lIsTID", trello.Defaults())
-list.AddCard(trello.Card{ Name: "Card Name", Description: "Card description" }, trello.Defaults())
+list.AddCard(&trello.Card{ Name: "Card Name", Desc: "Card description" }, trello.Defaults())
 ```
 
 ### Creating a Card by Copying Another Card

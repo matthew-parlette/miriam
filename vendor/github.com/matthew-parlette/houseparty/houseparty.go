@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -114,6 +115,11 @@ func InitRocketChatClient() error {
 	if err != nil {
 		return err
 	}
+	conn, err := net.Dial("tcp", rocketchatUrlString)
+	if err != nil {
+		return errors.Wrapf(err, "Could not connect to server")
+	}
+	defer conn.Close()
 	client, err := chat.NewClient(rocketchatUrl, false)
 	if err != nil {
 		return err
@@ -134,6 +140,9 @@ func GetChatChannel(channel string) models.Channel {
 }
 
 func SendChatMessage(channel string, message string) error {
+	if ChatClient == nil {
+		return errors.New("houseparty.ChatClient is nil")
+	}
 	ch := GetChatChannel("house-party")
 	ChatClient.SendMessage(&ch, message)
 	return nil
@@ -163,9 +172,9 @@ func IsNonBotUser(user string, nonBotUsers []string) bool {
 }
 
 func StartChatListener() error {
-	// if ChatClient == nil {
-	// 	return errors.New("houseparty.ChatClient is nil")
-	// }
+	if ChatClient == nil {
+		return errors.New("houseparty.ChatClient is nil")
+	}
 	channel := GetChatChannel("house-party")
 	messageChannel := make(chan models.Message, 1)
 	if err := ChatClient.SubscribeToMessageStream(&channel, messageChannel); err != nil {
